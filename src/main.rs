@@ -5,12 +5,12 @@ use std::time::Duration;
 use std::io::{self, Write};
 
 // Configurazione della tolleranza e dei parametri
-const DTW_TOLERANCE: f64 = 10.0; // Maggiore precisione
-const MIN_MOVE_DISTANCE: f64 = 10.0;
-const MAX_POINTS: usize = 150; // Massimo numero di punti per il percorso
+const DTW_TOLERANCE: f64 = 8.0; // Maggiore precisione
+const MIN_MOVE_DISTANCE: f64 = 15.0;
+const MAX_POINTS: usize = 100; // Massimo numero di punti per il percorso
 const RESAMPLE_POINTS: usize = 50; // Numero target di punti per il resampling
-const SMOOTHING_FACTOR: f64 = 0.2; // Fattore di smoothing
-const DTW_WINDOW: usize = 5; // Finestra Sakoe-Chiba
+const SMOOTHING_FACTOR: f64 = 0.15; // Fattore di smoothing
+const DTW_WINDOW: usize = 20; // Finestra Sakoe-Chiba
 
 fn main() {
     let device_state = DeviceState::new();
@@ -18,7 +18,7 @@ fn main() {
     let mut saved_pattern: Option<Vec<(f64, f64)>> = None;
 
     println!("Traccia una figura con il mouse e premi INVIO per terminarla.");
-    thread::sleep(Duration::from_secs(3));
+    thread::sleep(Duration::from_secs(1));
 
     // Modalità di reistrazione con interazione
     loop {
@@ -68,7 +68,7 @@ fn main() {
     // Modalità di ascolto
     let mut current_path: VecDeque<(f64, f64)> = VecDeque::new();
     let mut action_executed = false;
-
+    let mut i=0;
     loop {
         let mouse: MouseState = device_state.get_mouse();
         let pos = (mouse.coords.0 as f64, mouse.coords.1 as f64);
@@ -80,8 +80,13 @@ fn main() {
         if current_path.len() >= MAX_POINTS {
             current_path.pop_front();
         }
+        // Incremento di i dopo aver registrato i punti
+        if i < 100 {
+            i += 1;  // Incrementa i solo dopo aver registrato un nuovo punto
+        }
 
-        if current_path.len() >= 15 {
+
+        if current_path.len() >= 45&& i>=100 {
             if let Some(ref pattern) = saved_pattern {
                 let resampled_path = resample_path(current_path.clone().into_iter().collect(), RESAMPLE_POINTS);
                 let smoothed_path = smooth_path(resampled_path, SMOOTHING_FACTOR);
@@ -126,10 +131,13 @@ fn resample_path(path: Vec<(f64, f64)>, target_points: usize) -> Vec<(f64, f64)>
 
     let mut distances = vec![0.0];
     for i in 1..path.len() {
-        distances.push(distances[i - 1] + distance(&path[i - 1], &path[i]));
+        let dist = distance(&path[i - 1], &path[i]);
+        if dist > MIN_MOVE_DISTANCE {
+            distances.push(distances[i - 1] + dist);
+        }
     }
-    let total_length = *distances.last().unwrap();
 
+    let total_length = *distances.last().unwrap();
     let step = total_length / (target_points as f64 - 1.0);
     let mut current_length = 0.0;
     let mut j = 0;
