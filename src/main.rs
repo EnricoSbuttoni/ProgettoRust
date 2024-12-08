@@ -20,7 +20,7 @@ fn main() {
     println!("Traccia una figura con il mouse e premi INVIO per terminarla.");
     thread::sleep(Duration::from_secs(3));
 
-    // Modalità di registrazione con interazione
+    // Modalità di reistrazione con interazione
     loop {
         let mouse: MouseState = device_state.get_mouse();
         let pos = (mouse.coords.0 as f64, mouse.coords.1 as f64);
